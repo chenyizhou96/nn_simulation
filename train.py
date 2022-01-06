@@ -115,8 +115,6 @@ def batch_mean_energy_loss(unconstained_pos_batch, constrained_pos_batch, uncons
   for i in range(batch_size):
     e, pos =  energy_loss(unconstained_pos_batch[i, :], constrained_pos_batch[i, :], unconstrained_node, constrained_node, efem, psi, mu, lam)
     total = total+ e
-
-    
     pos_batch[i, :] = pos
   total = total/batch_size
   return total, pos_batch
@@ -163,7 +161,7 @@ unconstrained_nodes = [i for i in range(efem.Np) if not node_used[i]]
 
 box_dataset = ConstrainedPosDataset('../tgsl/tools/geometry_processing/output/',120, len(constrained_nodes))
 
-train_loader = DataLoader(box_dataset, batch_size = 10, shuffle = True)
+train_loader = DataLoader(box_dataset, batch_size = 10, shuffle = False)
 
 net = Net(N_bc*d, len(unconstrained_nodes)*d)
 
@@ -195,9 +193,10 @@ for epoch in range(1000):
     
     optimizer.step()
     print("batch number" + str(i))
-    for b in range(batch_size):
-      filename = './epoch_'+ str(epoch).zfill(3) + '_frame_' + str(i*batch_size+b).zfill(3)+'_python.geo'
-      TGSL.WriteTrisFrame(pos_batch[b, :], int(len(pos_batch[b,:])/3), boundary_mesh, len(boundary_mesh), bytes(filename, 'UTF-8'))
+    if epoch % 10 == 0:
+      for b in range(batch_size):
+        filename = './epoch_'+ str(epoch).zfill(3) + '_frame_' + str(i*batch_size+b).zfill(3)+'_python.geo'
+        TGSL.WriteTrisFrame(pos_batch[b, :], int(len(pos_batch[b,:])/3), boundary_mesh, len(boundary_mesh), bytes(filename, 'UTF-8'))
   # for i in range(box_dataset.frames):
   #   filename = './epoch_'+ str(epoch).zfill(3) + '_frame_' + str(i).zfill(3)+'_python.geo'
   #   constrained_size = len(constrained_nodes)
