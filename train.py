@@ -171,8 +171,7 @@ batch_size = 10
 
 for epoch in range(1000):
   loss = 0.0
-  if epoch % 10 == 0:
-    print("training epoch:" + str(epoch))
+  print("training epoch:" + str(epoch))
   if epoch % 200 == 0:
     torch.save({
             'epoch': epoch,
@@ -195,7 +194,7 @@ for epoch in range(1000):
     print("batch number" + str(i))
     if epoch % 10 == 0:
       for b in range(batch_size):
-        filename = './epoch_'+ str(epoch).zfill(3) + '_frame_' + str(i*batch_size+b).zfill(3)+'_python.geo'
+        filename = './output/epoch_'+ str(epoch).zfill(3) + '_frame_' + str(i*batch_size+b).zfill(3)+'_python.geo'
         TGSL.WriteTrisFrame(pos_batch[b, :], int(len(pos_batch[b,:])/3), boundary_mesh, len(boundary_mesh), bytes(filename, 'UTF-8'))
   # for i in range(box_dataset.frames):
   #   filename = './epoch_'+ str(epoch).zfill(3) + '_frame_' + str(i).zfill(3)+'_python.geo'
