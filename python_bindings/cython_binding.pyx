@@ -17,6 +17,20 @@ cdef extern from *:
 cdef extern from "../../tgsl/library/io/BinaryIO.h" namespace "TGSL::IO":
   void Deserialize[T](vector[T]& v, string filename)
 
+#cdef extern from "../../tgsl/library/Mesh.h" namespace "TGSL::MESH":
+  #void ComputeBoundaryTriMesh(vector[int]& tet_mesh, vector[int]& tri_mesh)
+
+cdef extern from "../../tgsl/library/io/IO.h" namespace "TGSL::IO":
+  void WriteTrisGEO[T](vector[T]& positions, int Np, vector[int] mesh, int mesh_size, string filename)
+
+def WriteTrisFrame(positions, Np, mesh, mesh_size, filename):
+  WriteTrisGEO[double](positions, Np, mesh, mesh_size, filename)
+
+#def ComputeBoundaryTriMesh(tet_mesh, boundary_mesh):
+  #cdef vector[int] boundary_mesh_copy= boundary_mesh
+  #ComputeBoundaryTriMesh(tet_mesh, boundary_mesh_copy)
+  #boundary_mesh[:] = boundary_mesh_copy
+
 def ReadDoubleVector(v, filename):
   cdef vector[double] vec = v
   Deserialize[double](vec, filename)

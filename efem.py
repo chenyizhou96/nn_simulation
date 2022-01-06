@@ -7,7 +7,7 @@ class ElasticFEM:
     self.Initialize(X)
     
   def Initialize(self, X):
-    self.Np = X.size(0)
+    self.Np = int(X.size(0)/3)
     elements = int(len(self.mesh)/(d+1))
     self.measure = torch.zeros(elements)
     self.Dm_inverse = torch.zeros(d*d*elements)
@@ -24,7 +24,8 @@ class ElasticFEM:
           self.Dm_inverse[(d*d)*e+d*r+c] = Dm_inv[r, c]
 
   def F(self, e, x):
-    return torch.matmul(self.Ds(e,x), self.ElementDmInv(e))
+    F = torch.matmul(self.Ds(e,x), self.ElementDmInv(e))
+    return F
 
   def ElementDmInv(self, e):
     Dm_inv = torch.zeros(d,d)
@@ -37,11 +38,11 @@ class ElasticFEM:
     result = torch.zeros(d,d)
     for i in range(d):
       for c in range(d):
-        result[i,c] = u[d*self.mesh[(d + 1) * e + i + 1] + c] - u[d*self.mesh[(d + 1) * e]+ c]
+        result[c,i] = u[d*self.mesh[(d + 1) * e + i + 1] + c] - u[d*self.mesh[(d + 1) * e]+ c]
     return result
 
   def potential_energy(self, psi, x, mu, lam):
     total = torch.zeros(1)
-    for e in range(torch.numel(self.measure)):
+    for e in range(len(self.measure)):
       total = total + self.measure[e] * psi(self.F(e, x), mu, lam)
     return total
