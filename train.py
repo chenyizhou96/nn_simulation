@@ -132,8 +132,8 @@ def assemble_pos( unconstrained_pos, constrained_pos, unconstrained_node, constr
 
 
 #set up:
-mu = 1.0
-lam = 2.0
+mu = 400.0
+lam = 600.0
 
 
 #load in our data:
@@ -192,7 +192,7 @@ for epoch in range(1000):
     
     optimizer.step()
     print("batch number" + str(i))
-    if epoch % 10 == 0:
+    if epoch % 50 == 0 and epoch > 0:
       for b in range(batch_size):
         filename = './output/epoch_'+ str(epoch).zfill(3) + '_frame_' + str(i*batch_size+b).zfill(3)+'_python.geo'
         TGSL.WriteTrisFrame(pos_batch[b, :], int(len(pos_batch[b,:])/3), boundary_mesh, len(boundary_mesh), bytes(filename, 'UTF-8'))
