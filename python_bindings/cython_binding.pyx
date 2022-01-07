@@ -26,6 +26,16 @@ cdef extern from "../../tgsl/library/io/IO.h" namespace "TGSL::IO":
 def WriteTrisFrame(positions, Np, mesh, mesh_size, filename):
   WriteTrisGEO[double](positions, Np, mesh, mesh_size, filename)
 
+cdef extern from "../../tgsl/library/core/algebra/MathTools.h" namespace "TGSL":
+  inline void QRPython(vector[double]& F, vector[double]& R, vector[double]& S)
+
+def QRDecomp(F, R, S):
+  cdef vector[double] R_c, S_c
+  QRPython(F, R_c, S_c)
+  R[:] = R_c
+  S[:] = S_c
+
+
 #def ComputeBoundaryTriMesh(tet_mesh, boundary_mesh):
   #cdef vector[int] boundary_mesh_copy= boundary_mesh
   #ComputeBoundaryTriMesh(tet_mesh, boundary_mesh_copy)
