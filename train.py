@@ -84,7 +84,7 @@ def batch_mean_energy_loss(unconstained_pos_batch, constrained_pos_batch, uncons
   total = total/batch_size
   return total, pos_batch
 
-def assemble_pos( unconstrained_pos, constrained_pos, unconstrained_node, constrained_node):
+def assemble_pos( unconstrained_pos, constrained_pos, unconstrained_node, constrained_node, efem):
   x_mesh = torch.zeros(d*efem.Np)
   for i in range(len(unconstrained_node)):
     for c in range(d):
@@ -112,9 +112,12 @@ def train(argv):
   TGSL.ReadIntVector(boundary_mesh, b'../tgsl/tools/geometry_processing/output/boundary_mesh_python.bin')
   all_bc_pos = []
   for i in range(120):
+    vec = []
     filename = '../tgsl/tools/geometry_processing/output/bc_frame_'+ str(i).zfill(6) + '_python.bin'
-    TGSL.AppendDoubleVector(all_bc_pos, bytes(filename, 'UTF-8'))
+    TGSL.ReadDoubleVector(vec, bytes(filename, 'UTF-8'))
+    all_bc_pos.append(vec)
   all_bc_pos = torch.FloatTensor(all_bc_pos)
+  print(all_bc_pos.shape)
   mesh = []
   TGSL.ReadIntVector(mesh, b'../tgsl/tools/geometry_processing/output/mesh_python.bin')
   X_mesh = []
@@ -131,7 +134,7 @@ def train(argv):
 
   box_dataset = ConstrainedPosDataset('../tgsl/tools/geometry_processing/output/',120, len(constrained_nodes))
 
-  train_loader = DataLoader(box_dataset, batch_size = 10, shuffle = False)
+  train_loader = DataLoader(box_dataset, batch_size = 10, shuffle = True)
 
   net = Net(N_bc*d, len(unconstrained_nodes)*d, train_config)
 
@@ -142,7 +145,7 @@ def train(argv):
 
   batch_size = 10
 
-  output_dir = './output/optimizer_'+str(train_config.optimizer)+'_activation_'+str(train_config.activation)+'_model_'+str(train_config.model_number)+'_lr_'+str(train_config.learning_rate)+'/'
+  output_dir = './output/optimizer_'+str(train_config.optimizer)+'_activation_'+str(train_config.activation)+'_model_'+str(train_config.model_number)+'_lr_'+str(train_config.learning_rate)+'_shuffle_'+str(train_config.shuffle)+'/'
 
   if not os.path.exists(output_dir):
     os.makedirs(output_dir)
@@ -172,9 +175,17 @@ def train(argv):
       optimizer.step()
       print("batch number" + str(i))
       if epoch % 50 == 0 and epoch > 0:
-        for b in range(batch_size):
-          filename = output_dir+'epoch_'+ str(epoch).zfill(3) + '_frame_' + str(i*batch_size+b).zfill(3)+'_python.geo'
-          TGSL.WriteTrisFrame(pos_batch[b, :], int(len(pos_batch[b,:])/3), boundary_mesh, len(boundary_mesh), bytes(filename, 'UTF-8'))
+        if train_config.shuffle:
+          for f in range(box_dataset.frames):
+            filename = output_dir+'epoch_'+ str(epoch).zfill(3) + '_frame_' + str(f).zfill(3)+'_python.geo'
+            constrained_pos = all_bc_pos[f, :]
+            unconstrained_pos = net.forward(constrained_pos)
+            x_mesh = assemble_pos(unconstrained_pos, constrained_pos, unconstrained_nodes, constrained_nodes, efem)
+            TGSL.WriteTrisFrame(x_mesh, int(len(x_mesh)/3), boundary_mesh, len(boundary_mesh), bytes(filename, 'UTF-8'))
+        else:
+          for b in range(batch_size):
+            filename = output_dir+'epoch_'+ str(epoch).zfill(3) + '_frame_' + str(i*batch_size+b).zfill(3)+'_python.geo'
+            TGSL.WriteTrisFrame(pos_batch[b, :], int(len(pos_batch[b,:])/3), boundary_mesh, len(boundary_mesh), bytes(filename, 'UTF-8'))
   # for i in range(box_dataset.frames):
   #   filename = './epoch_'+ str(epoch).zfill(3) + '_frame_' + str(i).zfill(3)+'_python.geo'
   #   constrained_size = len(constrained_nodes)
