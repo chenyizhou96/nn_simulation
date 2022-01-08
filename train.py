@@ -136,13 +136,13 @@ def train(argv):
   net = Net(N_bc*d, len(unconstrained_nodes)*d, train_config)
 
   if train_config.optimizer == 0:
-    optimizer = optim.SGD(net.parameters(), lr = 0.001)
+    optimizer = optim.SGD(net.parameters(), lr = train_config.learning_rate)
   else:
-    optimizer = optim.Adam(net.parameters(), lr = 0.001)
+    optimizer = optim.Adam(net.parameters(), lr = train_config.learning_rate)
 
   batch_size = 10
 
-  output_dir = './output/optimizer_'+str(train_config.optimizer)+'_activation_'+str(train_config.activation)+'_model_'+str(train_config.model_number)+'/'
+  output_dir = './output/optimizer_'+str(train_config.optimizer)+'_activation_'+str(train_config.activation)+'_model_'+str(train_config.model_number)+'_lr_'+str(train_config.learning_rate)+'/'
 
   if not os.path.exists(output_dir):
     os.makedirs(output_dir)
