@@ -134,7 +134,7 @@ def train(argv):
 
   box_dataset = ConstrainedPosDataset('../tgsl/tools/geometry_processing/output/',120, len(constrained_nodes))
 
-  train_loader = DataLoader(box_dataset, batch_size = 10, shuffle = True)
+  train_loader = DataLoader(box_dataset, batch_size = 10, shuffle = train_config.shuffle)
 
   net = Net(N_bc*d, len(unconstrained_nodes)*d, train_config)
 
