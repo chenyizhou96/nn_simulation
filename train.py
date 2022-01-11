@@ -179,14 +179,14 @@ def train(argv):
   for epoch in range(1000):
     loss = 0.0
     print("training epoch:" + str(epoch))
-    if epoch % 200 == 0 and epoch > 0:
+    if epoch % 50 == 0 and epoch > 0:
       torch.save({
               'epoch': epoch,
               'model_state_dict': net.state_dict(),
               'optimizer_state_dict': optimizer.state_dict(),
               'loss': loss
               }, output_dir+'checkpoint_'+ str(epoch)+'.tar')
-    if epoch % 50 == 0:
+    if epoch % 50 == 0 and epoch > 0:
       filename = output_dir+"residuals_epoch_" + str(epoch)+ ".csv"
       fields = ['energy', 'newton_residual'] 
       with open(filename, 'w') as csvfile: 
