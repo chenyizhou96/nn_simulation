@@ -8,6 +8,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 import python_bindings.TGSL as TGSL
 import config
+import csv
 import sim_example
 import os
 
@@ -161,6 +162,14 @@ def train(argv):
               'optimizer_state_dict': optimizer.state_dict(),
               'loss': loss
               }, output_dir+'checkpoint_'+ str(i)+'.tar')
+    if epoch % 50 == 0:
+      filename = output_dir+"residuals_epoch_" + str(epoch)+ ".csv"
+      fields = ['energy', 'newton_residual'] 
+      with open(filename, 'w') as csvfile: 
+        # creating a csv writer object 
+        csvwriter = csv.writer(csvfile) 
+        # writing the fields 
+        csvwriter.writerow(fields) 
     for i, constrained_pos_batch in enumerate(train_loader):
       optimizer.zero_grad()
       #constrained_pos = constrained_pos.reshape(d*len(constrained_nodes))
@@ -174,6 +183,7 @@ def train(argv):
       
       optimizer.step()
       print("batch number" + str(i))
+      #write data into file:
       if epoch % 50 == 0 and epoch > 0:
         if train_config.shuffle:
           for f in range(box_dataset.frames):
@@ -186,6 +196,16 @@ def train(argv):
           for b in range(batch_size):
             filename = output_dir+'epoch_'+ str(epoch).zfill(3) + '_frame_' + str(i*batch_size+b).zfill(3)+'_python.geo'
             TGSL.WriteTrisFrame(pos_batch[b, :], int(len(pos_batch[b,:])/3), boundary_mesh, len(boundary_mesh), bytes(filename, 'UTF-8'))
+            residual = efem.add_internal_force(pos_batch[b,:], sim_ex.p, [], mu, lam)
+            norm = torch.linalg.vector_norm(residual)
+            energy = efem.potential_energy(sim_ex.psi, pos_batch[b,:], mu, lam)
+            a = energy.detach().numpy()
+            b = norm.detach().numpy()
+            rows=[a[0],b]
+            with open(output_dir+"residuals_epoch_" + str(epoch)+ ".csv",'a') as fd:
+              writer = csv.writer(fd)
+              writer.writerow(rows)
+  
   # for i in range(box_dataset.frames):
   #   filename = './epoch_'+ str(epoch).zfill(3) + '_frame_' + str(i).zfill(3)+'_python.geo'
   #   constrained_size = len(constrained_nodes)

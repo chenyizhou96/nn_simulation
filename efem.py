@@ -1,6 +1,8 @@
 import torch
 d = int(3)
 
+#quasistatic version of the efem, assuming no mass:
+
 class ElasticFEM:
   def __init__(self, mesh, X):
     self.mesh = mesh
@@ -46,3 +48,21 @@ class ElasticFEM:
     for e in range(len(self.measure)):
       total = total + self.measure[e] * psi(self.F(e, x), mu, lam)
     return total
+
+  def add_internal_force(self, x, P, incident_elements, mu, lam, scale = 1):
+    residual = torch.zeros(len(x))
+    if len(incident_elements) == 0:
+      elements = len(self.measure)
+      for e in range(elements):
+        Fe = self.F(e, x)
+        Pe = P(Fe, mu, lam)
+        g = -self.measure[e]*torch.matmul(Pe, self.ElementDmInv(e).transpose(0,1))
+        for ie in range(d):
+          inverse_mass = 1
+          for c in range(d):
+            residual[d*self.mesh[(d + 1) * e + ie + 1]+c] = residual[d*self.mesh[(d + 1) * e + ie + 1]+c] + scale*inverse_mass*g[c, ie]
+
+    return residual
+
+
+

@@ -15,9 +15,16 @@ def corotated_psi(F, mu, lam):
   return psi 
 
 def linear_elasticity_psi(F, mu, lam):
+  #F.register_hook(print)
   eps = 0.5*(F+F.transpose(0, 1)) - torch.eye(3)
   psi = mu*torch.matmul(eps,eps).trace() + 0.5*lam*eps.trace()*eps.trace()
+
   return psi
+
+def linear_elasticity_p(F, mu, lam):
+  P = mu*(F+F.transpose(0,1) - 2*torch.eye(3)) + lam* (F.trace()-d)*torch.eye(3)
+  return P
+
 
 class mu_term(torch.autograd.Function):
   @staticmethod
