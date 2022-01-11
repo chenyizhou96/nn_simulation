@@ -62,7 +62,7 @@ class ConstrainedPosDataset(Dataset):
 
 
 
-def energy_loss(unconstrained_pos, constrained_pos, unconstrained_node, constrained_node, efem, psi, mu, lam):
+def EnergyLoss(unconstrained_pos, constrained_pos, unconstrained_node, constrained_node, efem, psi, mu, lam):
   pos = torch.zeros(d*efem.Np)
   for i in range(len(unconstrained_node)):
     for c in range(d):
@@ -74,12 +74,36 @@ def energy_loss(unconstrained_pos, constrained_pos, unconstrained_node, constrai
 
   return efem.potential_energy(psi, pos, mu, lam), pos
 
+def ResidualLoss(unconstrained_pos, constrained_pos, unconstrained_node, constrained_node, efem, P, mu, lam):
+  pos = torch.zeros(d*efem.Np)
+  for i in range(len(unconstrained_node)):
+    for c in range(d):
+      # if d*unconstrained_node[i]+c > d*efem.Np:
+      pos[d*unconstrained_node[i]+c] = unconstrained_pos[d*i+c]
+  for j in range(len(constrained_node)):
+    for c in range(d):
+      pos[d*constrained_node[j]+c] = constrained_pos[d*j+c]
+  residual = efem.add_internal_force(pos, P, [], mu, lam)
+  norm = torch.linalg.vector_norm(residual)
+  return norm, pos
+
 def batch_mean_energy_loss(unconstained_pos_batch, constrained_pos_batch, unconstrained_node, constrained_node, efem, psi, mu, lam):
   batch_size = len(unconstained_pos_batch)
   total = 0.0
   pos_batch = torch.zeros((batch_size, d*efem.Np))
   for i in range(batch_size):
-    e, pos =  energy_loss(unconstained_pos_batch[i, :], constrained_pos_batch[i, :], unconstrained_node, constrained_node, efem, psi, mu, lam)
+    e, pos =  EnergyLoss(unconstained_pos_batch[i, :], constrained_pos_batch[i, :], unconstrained_node, constrained_node, efem, psi, mu, lam)
+    total = total+ e
+    pos_batch[i, :] = pos
+  total = total/batch_size
+  return total, pos_batch
+
+def batch_mean_residual_loss(unconstained_pos_batch, constrained_pos_batch, unconstrained_node, constrained_node, efem, P, mu, lam):
+  batch_size = len(unconstained_pos_batch)
+  total = 0.0
+  pos_batch = torch.zeros((batch_size, d*efem.Np))
+  for i in range(batch_size):
+    e, pos =  ResidualLoss(unconstained_pos_batch[i, :], constrained_pos_batch[i, :], unconstrained_node, constrained_node, efem, P, mu, lam)
     total = total+ e
     pos_batch[i, :] = pos
   total = total/batch_size
@@ -146,7 +170,7 @@ def train(argv):
 
   batch_size = 10
 
-  output_dir = './output/optimizer_'+str(train_config.optimizer)+'_activation_'+str(train_config.activation)+'_model_'+str(train_config.model_number)+'_lr_'+str(train_config.learning_rate)+'_shuffle_'+str(train_config.shuffle)+'/'
+  output_dir = './output/optimizer_'+str(train_config.optimizer)+'_activation_'+str(train_config.activation)+'_model_'+str(train_config.model_number)+'_lr_'+str(train_config.learning_rate)+'_shuffle_'+str(train_config.shuffle)+'_use_residual_'+str(train_config.use_residual)+'/'
 
   if not os.path.exists(output_dir):
     os.makedirs(output_dir)
@@ -155,13 +179,13 @@ def train(argv):
   for epoch in range(1000):
     loss = 0.0
     print("training epoch:" + str(epoch))
-    if epoch % 200 == 0:
+    if epoch % 200 == 0 and epoch > 0:
       torch.save({
               'epoch': epoch,
               'model_state_dict': net.state_dict(),
               'optimizer_state_dict': optimizer.state_dict(),
               'loss': loss
-              }, output_dir+'checkpoint_'+ str(i)+'.tar')
+              }, output_dir+'checkpoint_'+ str(epoch)+'.tar')
     if epoch % 50 == 0:
       filename = output_dir+"residuals_epoch_" + str(epoch)+ ".csv"
       fields = ['energy', 'newton_residual'] 
@@ -176,7 +200,13 @@ def train(argv):
       unconstrained_pos_batch = net.forward(constrained_pos_batch)
       #print(unconstrained_pos_batch)
       #print(net.state_dict())
-      loss, pos_batch = batch_mean_energy_loss(unconstrained_pos_batch, constrained_pos_batch, unconstrained_nodes, constrained_nodes, efem, sim_ex.psi, mu, lam)
+      loss = torch.zeros(1)
+      pos_batch = torch.zeros(1)
+      if train_config.use_residual:
+        loss, pos_batch = batch_mean_residual_loss(unconstrained_pos_batch, constrained_pos_batch, unconstrained_nodes, constrained_nodes, efem, sim_ex.p, mu, lam)
+      else:
+        loss, pos_batch = batch_mean_energy_loss(unconstrained_pos_batch, constrained_pos_batch, unconstrained_nodes, constrained_nodes, efem, sim_ex.psi, mu, lam)
+      
       print(loss)
       
       loss.backward()
