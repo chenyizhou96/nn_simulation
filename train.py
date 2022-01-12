@@ -99,8 +99,8 @@ def assemble_pos( unconstrained_pos, constrained_pos, unconstrained_node, constr
 
 def train(argv):
   #set up:
-  mu = 400.0
-  lam = 600.0
+  mu = 284.62
+  lam = 576.92
 
   train_config = config.TrainConfig(argv)
 
@@ -134,9 +134,9 @@ def train(argv):
   unconstrained_nodes = [i for i in range(efem.Np) if not node_used[i]]
   #X_unconstrained = [X_mesh[i] for i in range(efem.Np*d) if not node_used[int(i/3)]]
 
-  box_dataset = ConstrainedPosDataset('../tgsl/tools/geometry_processing/output/',120, len(constrained_nodes))
+  box_dataset = ConstrainedPosDataset('../tgsl/tools/geometry_processing/output/',train_config.frames, len(constrained_nodes))
 
-  train_loader = DataLoader(box_dataset, batch_size = 10, shuffle = train_config.shuffle)
+  train_loader = DataLoader(box_dataset, batch_size = train_config.batch_size, shuffle = train_config.shuffle)
 
   net = Net(N_bc*d, len(unconstrained_nodes)*d, train_config)
 
@@ -147,7 +147,7 @@ def train(argv):
 
   #load model if needed:
   if train_config.load_model:
-    checkpoint = torch.load(train_config.load_dir+'checkpoint_11.tar')
+    checkpoint = torch.load(train_config.load_dir+'checkpoint_2950.tar')
     net.load_state_dict(checkpoint['model_state_dict'])
     #optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
     current_epoch = checkpoint['epoch']
@@ -155,15 +155,15 @@ def train(argv):
 
 
 
-  batch_size = 10
+  batch_size = train_config.batch_size
 
-  output_dir = './output/optimizer_'+str(train_config.optimizer)+'_activation_'+str(train_config.activation)+'_model_'+str(train_config.model_number)+'_lr_'+str(train_config.learning_rate)+'_shuffle_'+str(train_config.shuffle)+'_use_residual_'+str(train_config.use_residual)+'_ls_'+str(train_config.layer_size)+'/'
+  output_dir = './output/optimizer_'+str(train_config.optimizer)+'_activation_'+str(train_config.activation)+'_model_'+str(train_config.model_number)+'_lr_'+str(train_config.learning_rate)+'_shuffle_'+str(train_config.shuffle)+'_use_residual_'+str(train_config.use_residual)+'_ls_'+str(train_config.layer_size)+'_f_'+str(train_config.frames)+'/'
 
   if not os.path.exists(output_dir):
     os.makedirs(output_dir)
 
 
-  for epoch in range(1000):
+  for epoch in range(3000):
     loss = 0.0
     print("training epoch:" + str(epoch))
     if epoch % 50 == 0 and epoch > 0:
