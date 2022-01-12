@@ -13,8 +13,9 @@ class TrainConfig:
     self.use_residual = False
     self.load_model=False
     self.load_dir=""
+    self.layer_size = 32
     try:
-      opts, args = getopt.getopt(argv[1:], '' ,['optimizer=','activation=', 'model=', 'learning_rate=', 'shuffle', 'use_residual', 'load_dir='])
+      opts, args = getopt.getopt(argv[1:], '' ,['optimizer=','activation=', 'model=', 'learning_rate=', 'shuffle', 'use_residual', 'load_dir=', 'layer_size='])
     except getopt.GetoptError:
       print ('--model=<model_number>, --activation=<activate function>, --optimizer=<optimizer type>')
       sys.exit(2)
@@ -37,6 +38,8 @@ class TrainConfig:
       elif opt == "--load_dir":
         self.load_model=True
         self.load_dir = arg
+      elif opt == "--layer_size":
+        self.layer_size = int(arg)
 
     print("Argument parsed.")
     print("Optimizer: " + self.optimizer_list[self.optimizer])
@@ -46,5 +49,6 @@ class TrainConfig:
     print("Shuffle: " + str(self.shuffle))
     print("Use Residual: " + str(self.use_residual))
     print("Load Model:" + str(self.load_model))
+    print("Layer size:" + str(self.layer_size))
 
 

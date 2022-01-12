@@ -38,7 +38,7 @@ class ConstrainedPosDataset(Dataset):
 
 
 
-def EnergyLoss(unconstrained_pos, constrained_pos, unconstrained_node, constrained_node, efem, psi, mu, lam):
+def energy_loss(unconstrained_pos, constrained_pos, unconstrained_node, constrained_node, efem, psi, mu, lam):
   pos = torch.zeros(d*efem.Np)
   for i in range(len(unconstrained_node)):
     for c in range(d):
@@ -50,7 +50,7 @@ def EnergyLoss(unconstrained_pos, constrained_pos, unconstrained_node, constrain
 
   return efem.potential_energy(psi, pos, mu, lam), pos
 
-def ResidualLoss(unconstrained_pos, constrained_pos, unconstrained_node, constrained_node, efem, P, mu, lam):
+def residual_loss(unconstrained_pos, constrained_pos, unconstrained_node, constrained_node, efem, P, mu, lam):
   pos = torch.zeros(d*efem.Np)
   for i in range(len(unconstrained_node)):
     for c in range(d):
@@ -68,7 +68,7 @@ def batch_mean_energy_loss(unconstained_pos_batch, constrained_pos_batch, uncons
   total = 0.0
   pos_batch = torch.zeros((batch_size, d*efem.Np))
   for i in range(batch_size):
-    e, pos =  EnergyLoss(unconstained_pos_batch[i, :], constrained_pos_batch[i, :], unconstrained_node, constrained_node, efem, psi, mu, lam)
+    e, pos =  energy_loss(unconstained_pos_batch[i, :], constrained_pos_batch[i, :], unconstrained_node, constrained_node, efem, psi, mu, lam)
     total = total+ e
     pos_batch[i, :] = pos
   total = total/batch_size
@@ -79,7 +79,7 @@ def batch_mean_residual_loss(unconstained_pos_batch, constrained_pos_batch, unco
   total = 0.0
   pos_batch = torch.zeros((batch_size, d*efem.Np))
   for i in range(batch_size):
-    e, pos =  ResidualLoss(unconstained_pos_batch[i, :], constrained_pos_batch[i, :], unconstrained_node, constrained_node, efem, P, mu, lam)
+    e, pos =  residual_loss(unconstained_pos_batch[i, :], constrained_pos_batch[i, :], unconstrained_node, constrained_node, efem, P, mu, lam)
     total = total+ e
     pos_batch[i, :] = pos
   total = total/batch_size
@@ -132,7 +132,7 @@ def train(argv):
   for i in constrained_nodes:
     node_used[i] = 1
   unconstrained_nodes = [i for i in range(efem.Np) if not node_used[i]]
-  X_unconstrained = [X_mesh[i] for i in range(efem.Np*d) if not node_used[int(i/3)]]
+  #X_unconstrained = [X_mesh[i] for i in range(efem.Np*d) if not node_used[int(i/3)]]
 
   box_dataset = ConstrainedPosDataset('../tgsl/tools/geometry_processing/output/',120, len(constrained_nodes))
 
@@ -150,14 +150,14 @@ def train(argv):
     checkpoint = torch.load(train_config.load_dir+'checkpoint_11.tar')
     net.load_state_dict(checkpoint['model_state_dict'])
     #optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-    #epoch = checkpoint['epoch']
+    current_epoch = checkpoint['epoch']
     #loss = checkpoint['loss']
 
 
 
   batch_size = 10
 
-  output_dir = './output/optimizer_'+str(train_config.optimizer)+'_activation_'+str(train_config.activation)+'_model_'+str(train_config.model_number)+'_lr_'+str(train_config.learning_rate)+'_shuffle_'+str(train_config.shuffle)+'_use_residual_'+str(train_config.use_residual)+'/'
+  output_dir = './output/optimizer_'+str(train_config.optimizer)+'_activation_'+str(train_config.activation)+'_model_'+str(train_config.model_number)+'_lr_'+str(train_config.learning_rate)+'_shuffle_'+str(train_config.shuffle)+'_use_residual_'+str(train_config.use_residual)+'_ls_'+str(train_config.layer_size)+'/'
 
   if not os.path.exists(output_dir):
     os.makedirs(output_dir)
