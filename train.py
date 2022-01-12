@@ -7,6 +7,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import python_bindings.TGSL as TGSL
+from net import Net
 import config
 import csv
 import sim_example
@@ -14,31 +15,6 @@ import os
 
 d = 3
 
-class Net(nn.Module):
-  def __init__(self, input, output, config):
-    super(Net, self).__init__()
-    #self.conv1 = nn.Conv2d(1, 10, kernel_size=5)
-    #self.conv1_drop = nn.Dropout2d()
-    #self.conv2 = nn.Conv2d(10, 20, kernel_size=5)
-    #self.conv3 = nn.Conv2d(20,20,kernel_size = 5)
-    #self.conv2_drop = nn.Dropout2d()
-    self.fc1 = nn.Linear(input, 32)
-    self.fc2 = nn.Linear(32, 32)
-    self.fc3 = nn.Linear(32, 32)
-    self.fc4 = nn.Linear(32, output)
-    self.activation = F.relu
-    if config.activation == 1:
-      self.activation = torch.sigmoid
-    elif config.activation == 2:
-      self.activation = torch.tanh
-
-
-
-  def forward(self, x):
-    x = self.activation(self.fc1(x))
-    x = self.activation(self.fc2(x))
-    x = self.activation(self.fc3(x))
-    return self.activation(self.fc4(x))
 
 class ConstrainedPosDataset(Dataset):
     # """Constrained Positions dataset."""
@@ -156,6 +132,7 @@ def train(argv):
   for i in constrained_nodes:
     node_used[i] = 1
   unconstrained_nodes = [i for i in range(efem.Np) if not node_used[i]]
+  X_unconstrained = [X_mesh[i] for i in range(efem.Np*d) if not node_used[int(i/3)]]
 
   box_dataset = ConstrainedPosDataset('../tgsl/tools/geometry_processing/output/',120, len(constrained_nodes))
 
@@ -167,6 +144,16 @@ def train(argv):
     optimizer = optim.SGD(net.parameters(), lr = train_config.learning_rate)
   else:
     optimizer = optim.Adam(net.parameters(), lr = train_config.learning_rate)
+
+  #load model if needed:
+  if train_config.load_model:
+    checkpoint = torch.load(train_config.load_dir+'checkpoint_11.tar')
+    net.load_state_dict(checkpoint['model_state_dict'])
+    #optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+    #epoch = checkpoint['epoch']
+    #loss = checkpoint['loss']
+
+
 
   batch_size = 10
 
@@ -209,7 +196,10 @@ def train(argv):
       
       print(loss)
       
+      
       loss.backward()
+      #if train_config.verbose:
+      print(net.fc1.weight.grad.norm())
       
       optimizer.step()
       print("batch number" + str(i))
@@ -226,6 +216,7 @@ def train(argv):
           for b in range(batch_size):
             filename = output_dir+'epoch_'+ str(epoch).zfill(3) + '_frame_' + str(i*batch_size+b).zfill(3)+'_python.geo'
             TGSL.WriteTrisFrame(pos_batch[b, :], int(len(pos_batch[b,:])/3), boundary_mesh, len(boundary_mesh), bytes(filename, 'UTF-8'))
+            #write loss data into csv:
             residual = efem.add_internal_force(pos_batch[b,:], sim_ex.p, [], mu, lam)
             norm = torch.linalg.vector_norm(residual)
             energy = efem.potential_energy(sim_ex.psi, pos_batch[b,:], mu, lam)

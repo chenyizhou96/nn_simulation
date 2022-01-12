@@ -11,8 +11,10 @@ class TrainConfig:
     self.learning_rate = 0.001
     self.shuffle = False
     self.use_residual = False
+    self.load_model=False
+    self.load_dir=""
     try:
-      opts, args = getopt.getopt(argv[1:], '' ,['optimizer=','activation=', 'model=', 'learning_rate=', 'shuffle', 'use_residual'])
+      opts, args = getopt.getopt(argv[1:], '' ,['optimizer=','activation=', 'model=', 'learning_rate=', 'shuffle', 'use_residual', 'load_dir='])
     except getopt.GetoptError:
       print ('--model=<model_number>, --activation=<activate function>, --optimizer=<optimizer type>')
       sys.exit(2)
@@ -32,6 +34,9 @@ class TrainConfig:
         self.shuffle = True
       elif opt == "--use_residual":
         self.use_residual = True
+      elif opt == "--load_dir":
+        self.load_model=True
+        self.load_dir = arg
 
     print("Argument parsed.")
     print("Optimizer: " + self.optimizer_list[self.optimizer])
@@ -40,5 +45,6 @@ class TrainConfig:
     print("Learning rate: " + str(self.learning_rate))
     print("Shuffle: " + str(self.shuffle))
     print("Use Residual: " + str(self.use_residual))
+    print("Load Model:" + str(self.load_model))
 
 
